@@ -1,56 +1,51 @@
-# Welcome to your Expo app 👋
+<img src="./assets/app_icon.svg" width="80" height="80" align="right" />
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+# Eventify Mobile App
 
-## Get started
+Eventify is a premium event discovery mobile application built with **React Native** and **Expo SDK 54**. It features a state-of-the-art design system, high-fidelity animations powered by **Reanimated 3**, and a seamless user experience.
 
-1. Install dependencies
+## ✨ Key Features
 
-   ```bash
-   npm install
-   ```
+- **Animated Launch Sequence**: A 4-phase high-performance SVG animation built with Reanimated 3.
+- **Premium Design System**: Fully standardized tokens for colors, typography, spacing, and shadows.
+- **Modern Auth Experience**: High-fidelity Login and Sign-up screens with real-time focus states and social integration.
+- **Cross-Platform**: Optimized for both Android and iOS.
 
-2. Start the app
+## 🚀 Tech Stack
 
-   ```bash
-   npx expo start
-   ```
+- **Framework**: [Expo SDK 54](https://expo.dev)
+- **Navigation**: [Expo Router](https://docs.expo.dev/router/introduction) (File-based)
+- **Animation**: [React Native Reanimated 3](https://docs.swmansion.com/react-native-reanimated/)
+- **SVG Rendering**: [React Native SVG](https://github.com/software-mansion/react-native-svg)
+- **Typography**: Inter (Google Fonts)
 
-In the output, you'll find options to open the app in a
+## 🛠️ Getting Started
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
+### 1. Install Dependencies
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 2. Start the Development Server
+```bash
+npx expo start -c
+```
 
-### Other setup steps
+### 3. Open the App
+- Scan the QR code with **Expo Go** (Android/iOS).
+- Press **a** for Android Emulator.
+- Press **i** for iOS Simulator.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## 📁 Project Structure
 
-## Learn more
+- `src/app/`: File-based routes (Expo Router).
+- `src/components/`: Atomic design components (ui, cards, layout, auth).
+- `src/constants/`: Design system tokens (`theme.ts`).
+- `src/assets/`: Brand assets and SVGs.
 
-To learn more about developing your project with Expo, look at the following resources:
+## 🎨 Design Rules
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+The project follows strict design guidelines documented in `rules.md`. All new components must adhere to the standardized color palette and spacing tokens.
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+---
+© 2025 Eventify. All rights reserved.
