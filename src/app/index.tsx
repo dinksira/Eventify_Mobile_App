@@ -1,68 +1,48 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import ScreenWrapper from '@/components/layout/ScreenWrapper';
-import { colors, spacing, fontSize, fontWeight } from '@/constants/theme';
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
-import EventCard from '@/components/cards/EventCard';
+import React, { useState, useEffect } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-
+import { colors } from '@/constants/theme';
+import { useAuth } from '@/contexts/AuthContext';
 import AnimatedSplashScreen from '@/components/layout/AnimatedSplashScreen';
 import AuthScreen from '@/components/auth/AuthScreen';
 
-export default function HomeScreen() {
+export default function IndexScreen() {
   const router = useRouter();
+  const { session, isLoading } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
 
-  return (
-    <>
-      {showSplash && (
-        <AnimatedSplashScreen onAnimationFinish={() => setShowSplash(false)} />
-      )}
-      <AuthScreen />
-    </>
-  );
+  // When user is authenticated, navigate to the tabs
+  useEffect(() => {
+    if (!showSplash && !isLoading && session) {
+      router.replace('/(tabs)');
+    }
+  }, [showSplash, isLoading, session]);
+
+  // Show animated splash first
+  if (showSplash) {
+    return (
+      <AnimatedSplashScreen onAnimationFinish={() => setShowSplash(false)} />
+    );
+  }
+
+  // Show loading spinner while checking auth
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  // Not authenticated — show auth screen
+  return <AuthScreen />;
 }
 
 const styles = StyleSheet.create({
-  logoContainer: {
+  loadingContainer: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: spacing.md,
-  },
-  header: {
-    marginBottom: spacing.lg,
-  },
-  greeting: {
-    fontSize: fontSize.body,
-    color: colors.gray,
-    marginBottom: 4,
-  },
-  title: {
-    fontSize: fontSize.h1,
-    fontWeight: fontWeight.bold,
-    color: colors.dark,
-  },
-  section: {
-    marginTop: spacing.lg,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  sectionTitle: {
-    fontSize: fontSize.h2,
-    fontWeight: fontWeight.bold,
-    color: colors.dark,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.md,
-  },
-  actionButton: {
-    flex: 1,
+    backgroundColor: colors.offWhite,
   },
 });

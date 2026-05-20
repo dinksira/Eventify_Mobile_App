@@ -6,22 +6,108 @@ import {
   TouchableOpacity, 
   ScrollView, 
   KeyboardAvoidingView, 
-  Platform 
+  Platform
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { colors, spacing, radius, fontSize, fontWeight, shadows } from '@/constants/theme';
 import EventifyLogo from '@/components/ui/EventifyLogo';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Checkbox from '@/components/ui/Checkbox';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '@/services/supabase';
 
-type AuthMode = 'login' | 'signup';
+type AuthMode = 'login' | 'signup' | 'forgot_password' | 'reset_password';
 
 export default function AuthScreen() {
   const [mode, setMode] = useState<AuthMode>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [otp, setOtp] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleAuth = async () => {
+    console.log('Button pressed! Mode:', mode);
+    console.log('Email:', email, 'Password length:', password.length);
+
+    if ((mode === 'login' || mode === 'signup') && (!email || !password)) {
+      Toast.show({
+        type: 'error',
+        text1: 'Missing Fields',
+        text2: 'Please fill in all fields',
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      if (mode === 'forgot_password') {
+        if (!email) throw new Error('Please enter your email');
+        const { error } = await supabase.auth.resetPasswordForEmail(email);
+        if (error) throw error;
+        Toast.show({ type: 'success', text1: 'OTP Sent', text2: 'Please check your email for the 6-digit code' });
+        setMode('reset_password');
+      } else if (mode === 'reset_password') {
+        if (!otp || !password) throw new Error('Please enter the OTP and your new password');
+        const { error: verifyError } = await supabase.auth.verifyOtp({ email, token: otp, type: 'recovery' });
+        if (verifyError) throw verifyError;
+        const { error: updateError } = await supabase.auth.updateUser({ password });
+        if (updateError) throw updateError;
+        Toast.show({ type: 'success', text1: 'Success!', text2: 'Password updated successfully' });
+        setMode('login');
+        setOtp('');
+        setPassword('');
+      } else if (mode === 'login') {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+        Toast.show({
+          type: 'success',
+          text1: 'Welcome back!',
+          text2: 'Logged in successfully',
+        });
+      } else {
+        if (!agreeToTerms) {
+          Toast.show({
+            type: 'error',
+            text1: 'Terms of Service',
+            text2: 'You must agree to the Terms of Service',
+          });
+          setLoading(false);
+          return;
+        }
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: fullName },
+          },
+        });
+        if (error) throw error;
+        Toast.show({
+          type: 'success',
+          text1: 'Account Created',
+          text2: 'You have been successfully registered!',
+        });
+      }
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Authentication Error',
+        text2: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView 
@@ -31,6 +117,7 @@ export default function AuthScreen() {
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Logo Section */}
         <View style={styles.logoContainer}>
@@ -39,99 +126,146 @@ export default function AuthScreen() {
 
         {/* Form Section */}
         <View style={styles.form}>
-          {/* Tab Selector */}
-          <View style={styles.tabSelector}>
-            <TouchableOpacity 
-              style={[styles.tab, mode === 'login' && styles.activeTab]}
-              onPress={() => setMode('login')}
-            >
-              <Text style={[styles.tabText, mode === 'login' && styles.activeTabText]}>Login</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.tab, mode === 'signup' && styles.activeTab]}
-              onPress={() => setMode('signup')}
-            >
-              <Text style={[styles.tabText, mode === 'signup' && styles.activeTabText]}>Sign Up</Text>
-            </TouchableOpacity>
-          </View>
-            {mode === 'signup' && (
-              <Input 
-                label="Full Name"
-                placeholder="Dink Sira"
-                leftIcon="mail-outline" // The screenshot shows mail icon for name? Actually looks like mail icon but it says Full Name. I'll use person-outline for name.
-                // Wait, screenshot 2 shows mail icon for Full Name field too. That's weird but I'll follow it if it looks like that.
-                // Actually it looks like a person icon would be better. I'll use mail-outline as in screenshot if it's really like that.
-                // Looking closer at screenshot 2, it's a mail icon. Okay.
-                leftIcon="mail-outline"
-              />
-            )}
+          {/* Tab Selector or Reset Header */}
+          {(mode === 'login' || mode === 'signup') ? (
+            <View style={styles.tabSelector}>
+              <TouchableOpacity 
+                style={[styles.tab, mode === 'login' && styles.activeTab]}
+                onPress={() => setMode('login')}
+              >
+                <Text style={[styles.tabText, mode === 'login' && styles.activeTabText]}>Login</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.tab, mode === 'signup' && styles.activeTab]}
+                onPress={() => setMode('signup')}
+              >
+                <Text style={[styles.tabText, mode === 'signup' && styles.activeTabText]}>Sign Up</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.resetHeaderRow}>
+              <TouchableOpacity onPress={() => setMode('login')} style={styles.backButton}>
+                <Ionicons name="arrow-back" size={24} color={colors.dark} />
+              </TouchableOpacity>
+              <Text style={styles.resetHeaderTitle}>
+                {mode === 'forgot_password' ? 'Reset Password' : 'Enter OTP'}
+              </Text>
+            </View>
+          )}
 
+          {mode === 'forgot_password' && (
+            <Text style={styles.resetInstructions}>
+              Enter the email associated with your account and we will send you a 6-digit OTP code to reset your password.
+            </Text>
+          )}
+
+          {mode === 'signup' && (
+            <Input 
+              label="Full Name"
+              placeholder="Dink Sira"
+              leftIcon="mail-outline"
+              value={fullName}
+              onChangeText={setFullName}
+            />
+          )}
+
+          {mode === 'reset_password' && (
+            <Input 
+              label="OTP Code"
+              placeholder="Enter 6-digit code"
+              leftIcon="keypad-outline"
+              keyboardType="number-pad"
+              value={otp}
+              onChangeText={setOtp}
+            />
+          )}
+
+          {(mode === 'login' || mode === 'signup' || mode === 'forgot_password') && (
             <Input 
               label="Email"
               placeholder="your@email.com"
               leftIcon="mail-outline"
               keyboardType="email-address"
               autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
             />
+          )}
 
+          {(mode === 'login' || mode === 'signup' || mode === 'reset_password') && (
             <Input 
-              label="password"
+              label={mode === 'reset_password' ? 'New Password' : 'Password'}
               placeholder={mode === 'login' ? "Enter your password" : "Create a password"}
               leftIcon="shield-checkmark-outline"
               rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
               onRightIconPress={() => setShowPassword(!showPassword)}
               secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={setPassword}
             />
+          )}
 
-            {mode === 'login' ? (
-              <Checkbox 
-                label="Remember me"
-                checked={rememberMe}
-                onChange={setRememberMe}
-                rightElement={
-                  <TouchableOpacity>
-                    <Text style={styles.forgotPassword}>Forget password?</Text>
-                  </TouchableOpacity>
-                }
-              />
-            ) : (
-              <View style={styles.termsRow}>
-                 <Checkbox 
-                  label="I Agree to the "
-                  checked={agreeToTerms}
-                  onChange={setAgreeToTerms}
-                />
-                <TouchableOpacity>
-                  <Text style={styles.termsLink}>Terms of Service</Text>
+          {mode === 'login' && (
+            <Checkbox 
+              label="Remember me"
+              checked={rememberMe}
+              onChange={setRememberMe}
+              rightElement={
+                <TouchableOpacity onPress={() => setMode('forgot_password')}>
+                  <Text style={styles.forgotPassword}>Forget password?</Text>
                 </TouchableOpacity>
-              </View>
-            )}
+              }
+            />
+          )}
+          
+          {mode === 'signup' && (
+            <View style={styles.termsRow}>
+               <Checkbox 
+                label="I Agree to the "
+                checked={agreeToTerms}
+                onChange={setAgreeToTerms}
+              />
+              <TouchableOpacity>
+                <Text style={styles.termsLink}>Terms of Service</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
             <Button 
-              title={mode === 'login' ? "Login" : "Create Account"}
-              onPress={() => {}}
+              title={
+                loading ? "Loading..." : 
+                mode === 'login' ? "Login" : 
+                mode === 'signup' ? "Create Account" : 
+                mode === 'forgot_password' ? "Send OTP" : "Reset Password"
+              }
+              onPress={handleAuth}
               style={styles.mainButton}
               textStyle={styles.mainButtonText}
+              disabled={loading}
             />
 
-            {/* Divider */}
-            <View style={styles.dividerContainer}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>Or continue with</Text>
-              <View style={styles.dividerLine} />
-            </View>
+            {(mode === 'login' || mode === 'signup') && (
+              <>
+                {/* Divider */}
+                <View style={styles.dividerContainer}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>Or continue with</Text>
+                  <View style={styles.dividerLine} />
+                </View>
 
-            {/* Social Buttons */}
-            <View style={styles.socialRow}>
-              <TouchableOpacity style={styles.socialButton}>
-                <Ionicons name="logo-google" size={20} color="#EA4335" />
-                <Text style={styles.socialText}>Google</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton}>
-                <Ionicons name="logo-apple" size={20} color="#000" />
-                <Text style={styles.socialText}>Apple</Text>
-              </TouchableOpacity>
-            </View>
+                {/* Social Buttons */}
+                <View style={styles.socialRow}>
+                  <TouchableOpacity style={styles.socialButton}>
+                    <Ionicons name="logo-google" size={20} color="#EA4335" />
+                    <Text style={styles.socialText}>Google</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.socialButton}>
+                    <Ionicons name="logo-apple" size={20} color="#000" />
+                    <Text style={styles.socialText}>Apple</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
         </View>
 
         {/* Footer */}
@@ -257,5 +391,25 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 'auto',
     paddingVertical: spacing.xl,
+  },
+  resetHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  backButton: {
+    padding: spacing.xs,
+    marginRight: spacing.sm,
+  },
+  resetHeaderTitle: {
+    fontSize: fontSize.h2,
+    fontWeight: fontWeight.bold,
+    color: colors.dark,
+  },
+  resetInstructions: {
+    fontSize: fontSize.body,
+    color: colors.gray,
+    marginBottom: spacing.lg,
+    lineHeight: 22,
   },
 });
