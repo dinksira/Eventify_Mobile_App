@@ -1,23 +1,9 @@
 import React from 'react';
-import { Tabs, Redirect } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fontSize, fontWeight } from '@/constants/theme';
-import { useAuth } from '@/contexts/AuthContext';
 
 export default function TabLayout() {
-  const { session, isLoading } = useAuth();
-
-  // If loading, you could return a simple loading spinner here instead of null
-  // But returning null from a Layout component crashes Expo Router.
-  if (isLoading) {
-    return <Tabs screenOptions={{ tabBarStyle: { display: 'none' } }} />;
-  }
-
-  // If not authenticated, instantly redirect them to the auth screen
-  if (!session) {
-    return <Redirect href="/" />;
-  }
-
   return (
     <Tabs
       screenOptions={{

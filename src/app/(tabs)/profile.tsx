@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { colors, spacing, radius, fontSize, fontWeight, shadows } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import ScreenWrapper from '@/components/layout/ScreenWrapper';
@@ -7,6 +8,18 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const { user, profile, signOut } = useAuth();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    try {
+      console.log('SIGN OUT: Starting...');
+      await signOut(); // Wait for tokens to be purged
+      console.log('SIGN OUT: Session cleared, navigating...');
+      router.replace('/');
+    } catch (e) {
+      console.log('SIGN OUT ERROR:', e);
+    }
+  };
 
   return (
     <ScreenWrapper>
@@ -38,7 +51,7 @@ export default function ProfileScreen() {
       </View>
 
       {/* Sign Out Button */}
-      <TouchableOpacity style={styles.signOutBtn} onPress={signOut}>
+      <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
         <Ionicons name="log-out-outline" size={22} color={colors.error} />
         <Text style={styles.signOutText}>Sign Out</Text>
       </TouchableOpacity>

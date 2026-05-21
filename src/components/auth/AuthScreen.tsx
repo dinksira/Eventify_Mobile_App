@@ -16,6 +16,11 @@ import Button from '@/components/ui/Button';
 import Checkbox from '@/components/ui/Checkbox';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/services/supabase';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+import { makeRedirectUri } from 'expo-auth-session';
+
+WebBrowser.maybeCompleteAuthSession();
 
 type AuthMode = 'login' | 'signup' | 'forgot_password' | 'reset_password';
 
@@ -51,7 +56,7 @@ export default function AuthScreen() {
         if (!email) throw new Error('Please enter your email');
         const { error } = await supabase.auth.resetPasswordForEmail(email);
         if (error) throw error;
-        Toast.show({ type: 'success', text1: 'OTP Sent', text2: 'Please check your email for the 6-digit code' });
+        Toast.show({ type: 'success', text1: 'OTP Sent', text2: 'Please check your email for the 8-digit code' });
         setMode('reset_password');
       } else if (mode === 'reset_password') {
         if (!otp || !password) throw new Error('Please enter the OTP and your new password');
@@ -109,6 +114,50 @@ export default function AuthScreen() {
     }
   };
 
+  const handleGoogleAuth = async () => {
+    try {
+      setLoading(true);
+      const redirectTo = makeRedirectUri();
+      console.log('EXPECTED REDIRECT URL:', redirectTo);
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.url) throw new Error('Failed to initialize Google login');
+
+      console.log('FULL SUPABASE OAUTH URL:', data.url);
+
+      const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+      if (res.type === 'success' && res.url) {
+        // Extract the tokens from the URL fragment (#access_token=...&refresh_token=...)
+        const url = res.url;
+        const hashPart = url.split('#')[1];
+        if (hashPart) {
+          const params = new URLSearchParams(hashPart);
+          const access_token = params.get('access_token');
+          const refresh_token = params.get('refresh_token');
+          
+          if (access_token && refresh_token) {
+            // Set the session manually — this triggers AuthContext's onAuthStateChange
+            await supabase.auth.setSession({ access_token, refresh_token });
+            Toast.show({ type: 'success', text1: 'Welcome!', text2: 'Signed in with Google' });
+          }
+        }
+      }
+    } catch (error: any) {
+      Toast.show({ type: 'error', text1: 'Google Login Failed', text2: error.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -155,7 +204,7 @@ export default function AuthScreen() {
 
           {mode === 'forgot_password' && (
             <Text style={styles.resetInstructions}>
-              Enter the email associated with your account and we will send you a 6-digit OTP code to reset your password.
+              Enter the email associated with your account and we will send you an 8-digit OTP code to reset your password.
             </Text>
           )}
 
@@ -172,7 +221,7 @@ export default function AuthScreen() {
           {mode === 'reset_password' && (
             <Input 
               label="OTP Code"
-              placeholder="Enter 6-digit code"
+              placeholder="Enter 8-digit code"
               leftIcon="keypad-outline"
               keyboardType="number-pad"
               value={otp}
@@ -255,13 +304,9 @@ export default function AuthScreen() {
 
                 {/* Social Buttons */}
                 <View style={styles.socialRow}>
-                  <TouchableOpacity style={styles.socialButton}>
-                    <Ionicons name="logo-google" size={20} color="#EA4335" />
-                    <Text style={styles.socialText}>Google</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.socialButton}>
-                    <Ionicons name="logo-apple" size={20} color="#000" />
-                    <Text style={styles.socialText}>Apple</Text>
+                  <TouchableOpacity style={styles.socialButton} onPress={handleGoogleAuth} disabled={loading}>
+                    <Ionicons name="logo-google" size={22} color="#EA4335" />
+                    <Text style={styles.socialText}>Continue with Google</Text>
                   </TouchableOpacity>
                 </View>
               </>
